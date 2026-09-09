@@ -4,8 +4,6 @@ from dataclasses import dataclass
 n = 10
 i = 0
 a = [3, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-max_mas = 0
-min_mas = 0
 new_mas = []
 mas_in_key = []
 y = 0
@@ -61,7 +59,7 @@ class Student:
 stud = [Student() for i in range(3)]
 for i in range(3):
     Sername = input("Введите фамилию студента\n")
-    stud[i].famil = Sername
+    stud[i].Sername = Sername
     name = input("Введите имя студента\n")
     stud[i].name = name
     facult = input("Введите название факультета студента\n")
@@ -74,8 +72,8 @@ for student in stud:
 
 find = input("Введите фамилию интересующего вас студента\n")
 for student in stud:
-    if find == student.famil:
-        print("Студент", student.famil, student.name, "обучается на факультете", student.facult,
+    if find == student.Sername.lower():
+        print("Студент", student.Sername, student.name, "обучается на факультете", student.facult,
               "номер зачетной книжки",
               student.nomzach)
         break
