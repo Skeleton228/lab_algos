@@ -8,8 +8,8 @@ mas_in_key = []
 y = 0
 o = 0
 matrix = [
-    [1, 2],[5,3],
-    [3, 4],[8,1]
+    [1, 2], [5, 3],
+    [3, 4], [8, 1]
 ]
 summ = 0
 # question 1
@@ -43,18 +43,16 @@ n = int(input("Введите количество столбцов "))
 if n != m:
     print("Это не квадратная матрица")
 else:
-    new_matrix = [[]*m for _ in range(n)]
+    new_matrix = [[] * m for _ in range(n)]
     for i in range(m):
         for j in range(n):
-            new = random.randint(-10,30)
+            new = random.randint(-10, 30)
             new_matrix[j].append(new)
     summ = 0
     for i in range(n):
         summ += new_matrix[i][i]
     print(new_matrix)
     print(summ)
-
-
 
 summs = []
 for c in matrix:
@@ -72,6 +70,7 @@ class Student:
     name: str = ""
     facult: str = ""
     nomzach: int = 0
+
 
 number = int(input("Введите количество студентов которых хотите занести в базу: "))
 stud = [Student() for i in range(number)]
