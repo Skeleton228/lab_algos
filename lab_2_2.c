@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define N 1000
+#define N 51500
 
 
 void shell(int *items, int count)
@@ -54,7 +54,7 @@ int compare(const void *a, const void *b)
 
 int main(void)
 {
-    int orig[N], temp[N];
+    static int orig[N], temp[N];
     clock_t start, end;
 
     
