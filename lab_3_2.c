@@ -27,7 +27,7 @@ struct node *get_struct(void)
 }
 
 // Постановка объекта строго в конец очереди
-void spstore(void)
+void queue(void)
 {
     struct node *p = get_struct();
 
@@ -101,7 +101,7 @@ int main(void)
         scanf("%d", &choice);
 
         switch (choice) {
-            case 1: spstore(); break;
+            case 1: queue(); break;
             case 2: serve(); break;
             case 3: review(); break;
             case 0: clear_list(); break;
