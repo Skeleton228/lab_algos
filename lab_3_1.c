@@ -3,17 +3,15 @@
 #include <string.h>
 #include <windows.h>
 
-// Структура элемента приоритетной очереди
 struct node
 {
-    char inf[256];      // Название задачи
-    int priority;       // Приоритет (чем больше число, тем важнее)
-    struct node *next;  // Указатель на следующий элемент
+    char inf[256];
+    int priority;
+    struct node *next;
 };
 
-struct node *head = NULL; // Начало очереди
+struct node *head = NULL; 
 
-// Функция создания нового элемента
 struct node *get_struct(void)
 {
     struct node *p = (struct node*)malloc(sizeof(struct node));
@@ -24,43 +22,47 @@ struct node *get_struct(void)
     }
     printf("Введите название объекта: ");
     scanf("%255s", p->inf);
-    printf("Введите приоритет: ");
-    scanf("%d", &p->priority);
+    
+    do {
+        printf("Введите приоритет: ");
+        scanf("%d", &p->priority);
+        if (p->priority < 1)
+        {
+            printf("Ошибка! Приоритет не может быть меньше 1. Попробуйте снова.\n");
+        }
+    } while (p->priority < 1);
+
     p->next = NULL;
     return p;
 }
 
-// Добавление элемента с сортировкой по убыванию приоритета
+// 1. Добавление элемента
 void spstore(void)
 {
     struct node *p = get_struct();
 
-    // Если очередь пуста
     if (head == NULL) 
     {
         head = p;
     }
-    // Если приоритет нового выше, чем у головы списка
-    else if (p->priority > head->priority) 
+    else if (p->priority < head->priority) 
     {
         p->next = head;
         head = p;
     }
     else 
     {
-        // Ищем место: пропускаем все элементы с приоритетом больше либо равным нашему
         struct node *current = head;
-        while (current->next != NULL && current->next->priority >= p->priority)
+        while (current->next != NULL && current->next->priority <= p->priority)
         {
             current = current->next;
         }
-        // Вставляем новый элемент после найденного
         p->next = current->next;
         current->next = p;
     }
 }
 
-// Извлечение задачи с наивысшим приоритетом (первой в списке)
+// 2. Извлечение первого элемента (самого важного)
 void serve(void)
 {
     if (head == NULL)
@@ -69,12 +71,12 @@ void serve(void)
         return;
     }
     struct node *temp = head;
-    head = head->next; // Сдвигаем голову
+    head = head->next; 
     printf("Извлечен объект: %s (Приоритет: %d)\n", temp->inf, temp->priority);
-    free(temp); // Очищаем память удаленного элемента
+    free(temp); 
 }
 
-// Просмотр всех элементов очереди
+// 3. Просмотр списка
 void review(void)
 {
     struct node *struc = head;
@@ -87,7 +89,74 @@ void review(void)
     }
 }
 
-// Очистка всей памяти при выходе
+// 4. Изменение приоритета
+void change_priority(char *name)
+{
+    struct node *struc = head;
+    struct node *prev = NULL;
+    struct node *target = NULL;
+    int new_priority;
+
+    // Ищем элемент и вырезаем его из списка
+    while (struc != NULL)
+    {
+        if (strcmp(struc->inf, name) == 0)
+        {
+            target = struc;
+            
+            if (prev == NULL) 
+                head = head->next; 
+            else 
+                prev->next = struc->next; 
+                
+            break; 
+        }
+        prev = struc;
+        struc = struc->next;
+    }
+
+    if (target == NULL)
+    {
+        printf("Объект '%s' не найден!\n", name);
+        return;
+    }
+
+    do {
+        printf("Введите новый приоритет: ");
+        scanf("%d", &new_priority);
+        if (new_priority < 1)
+        {
+            printf("Ошибка!\n");
+        }
+    } while (new_priority < 1);
+
+    target->priority = new_priority;
+    target->next = NULL; 
+
+    // Вставляем обратно с новыми правилами (знаки перевернуты)
+    if (head == NULL) 
+    {
+        head = target;
+    }
+    else if (target->priority < head->priority) 
+    {
+        target->next = head;
+        head = target;
+    }
+    else 
+    {
+        struct node *current = head;
+        while (current->next != NULL && current->next->priority <= target->priority)
+        {
+            current = current->next;
+        }
+        target->next = current->next;
+        current->next = target;
+    }
+
+    printf("Приоритет успешно изменен!\n");
+}
+
 void clear_list(void)
 {
     struct node *temp;
@@ -101,15 +170,18 @@ void clear_list(void)
 
 int main(void)
 {
-    SetConsoleCP(65001);       // Настройка русской кодировки для Windows
+    SetConsoleCP(65001);       
     SetConsoleOutputCP(65001); 
 
     int choice;
+    char name[256];
+
     do {
         printf("\n--- ПРИОРИТЕТНАЯ ОЧЕРЕДЬ ---\n");
-        printf("1. Добавить объект (по приоритету)\n");
-        printf("2. Извлечь объект (первый)\n");
+        printf("1. Добавить объект\n");
+        printf("2. Удалить объект\n");
         printf("3. Просмотр очереди\n");
+        printf("4. Изменить приоритет объекта\n");
         printf("0. Выход\n");
         printf("Выбор: ");
         scanf("%d", &choice);
@@ -118,6 +190,11 @@ int main(void)
             case 1: spstore(); break;
             case 2: serve(); break;
             case 3: review(); break;
+            case 4:
+                printf("Введите имя объекта: ");
+                scanf("%255s", name);
+                change_priority(name);
+                break;
             case 0: clear_list(); break;
             default: printf("Неверный ввод!\n");
         }
