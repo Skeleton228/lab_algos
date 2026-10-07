@@ -89,72 +89,98 @@ void review(void)
     }
 }
 
-// 4. Изменение приоритета
+// 4. ИЗМЕНЕНИЕ ПРИОРИТЕТА У ВСЕХ ОБЪЕКТОВ С ЗАДАННЫМ ИМЕНЕМ
 void change_priority(char *name)
 {
     struct node *struc = head;
-    struct node *prev = NULL;
-    struct node *target = NULL;
-    int new_priority;
+    int count = 0;
 
-    // Ищем элемент и вырезаем его из списка
+    // ШАГ 1: Считаем, есть ли такие объекты и сколько их
+    while (struc != NULL)
+    {
+        if (strcmp(struc->inf, name) == 0) count++;
+        struc = struc->next;
+    }
+
+    if (count == 0)
+    {
+        printf("Объекты с именем '%s' не найдены!\n", name);
+        return;
+    }
+
+    // ШАГ 2: Запрашиваем новый приоритет (один раз для всех)
+    int new_priority;
+    do {
+        printf("Найдено объектов: %d. Введите для них новый приоритет: ", count);
+        scanf("%d", &new_priority);
+        if (new_priority < 1)
+        {
+            printf("Ошибка! Приоритет не может быть меньше 1.\n");
+        }
+    } while (new_priority < 1);
+
+    // ШАГ 3: Вырезаем все нужные объекты во временный список (temp_list)
+    struc = head;
+    struct node *prev = NULL;
+    struct node *temp_list = NULL; 
+
     while (struc != NULL)
     {
         if (strcmp(struc->inf, name) == 0)
         {
-            target = struc;
+            struct node *target = struc;
             
+            // Отсоединяем от основного списка
             if (prev == NULL) 
                 head = head->next; 
             else 
                 prev->next = struc->next; 
                 
-            break; 
+            struc = struc->next; // Шагаем дальше по основному списку
+            
+            // Прикрепляем вырезанный элемент во временный список
+            target->next = temp_list;
+            temp_list = target;
         }
-        prev = struc;
-        struc = struc->next;
-    }
-
-    if (target == NULL)
-    {
-        printf("Объект '%s' не найден!\n", name);
-        return;
-    }
-
-    do {
-        printf("Введите новый приоритет: ");
-        scanf("%d", &new_priority);
-        if (new_priority < 1)
+        else
         {
-            printf("Ошибка!\n");
+            prev = struc;
+            struc = struc->next;
         }
-    } while (new_priority < 1);
-
-    target->priority = new_priority;
-    target->next = NULL; 
-
-    // Вставляем обратно с новыми правилами (знаки перевернуты)
-    if (head == NULL) 
-    {
-        head = target;
     }
-    else if (target->priority < head->priority) 
+
+    // ШАГ 4: Вставляем элементы из временного списка обратно (уже с новыми правилами)
+    while (temp_list != NULL)
     {
-        target->next = head;
-        head = target;
-    }
-    else 
-    {
-        struct node *current = head;
-        while (current->next != NULL && current->next->priority <= target->priority)
+        struct node *target = temp_list;
+        temp_list = temp_list->next; // Берем элемент из временной стопки
+
+        target->priority = new_priority; // Меняем приоритет
+        target->next = NULL; 
+
+        // Стандартный алгоритм вставки (как в spstore)
+        if (head == NULL) 
         {
-            current = current->next;
+            head = target;
         }
-        target->next = current->next;
-        current->next = target;
+        else if (target->priority < head->priority) 
+        {
+            target->next = head;
+            head = target;
+        }
+        else 
+        {
+            struct node *current = head;
+            while (current->next != NULL && current->next->priority <= target->priority)
+            {
+                current = current->next;
+            }
+            target->next = current->next;
+            current->next = target;
+        }
     }
 
-    printf("Приоритет успешно изменен!\n");
+    printf("Приоритет успешно изменен у %d объектов!\n", count);
 }
 
 void clear_list(void)
@@ -179,9 +205,9 @@ int main(void)
     do {
         printf("\n--- ПРИОРИТЕТНАЯ ОЧЕРЕДЬ ---\n");
         printf("1. Добавить объект\n");
-        printf("2. Удалить объект\n");
+        printf("2. Извлечь объект\n");
         printf("3. Просмотр очереди\n");
-        printf("4. Изменить приоритет объекта\n");
+        printf("4. Изменить приоритет по имени\n");
         printf("0. Выход\n");
         printf("Выбор: ");
         scanf("%d", &choice);
