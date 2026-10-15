@@ -47,94 +47,88 @@ void print_tree(struct Node *r, int l)
 	print_tree(r->right, l + 1);
 	for(int i = 0; i < l; i++)
 	{
-		printf(" ");
+		printf("    ");
 	}
 	printf("%d\n", r->data);
 	print_tree(r->left,   l+1);
 }
 
-// ==========================================
-// ЗАДАНИЕ 1: Алгоритм поиска значения
-// ==========================================
-struct Node* search_value(struct Node *r, int key)
+
+void find_levels_to_array(struct Node *r, int key, int level, int levels[], int *count)
 {
-	if (r == NULL) return NULL; // Дошли до конца ветки, ничего не нашли
-	
-	if (r->data == key) return r; // Нашли нужное значение!
+    if (r == NULL) return;
 
-	if (key > r->data)
-		return search_value(r->left, key); // Большие числа ищем слева
-	else
-		return search_value(r->right, key); // Меньшие - справа
-}
+    if (r->data == key)
+    {
+        // Записываем найденный индекс (уровень) в массив
+        levels[*count] = level;
+        (*count)++;
 
-// ==========================================
-// ЗАДАНИЕ 2: Подсчет числа вхождений
-// ==========================================
-int count_occurrences(struct Node *r, int key)
-{
-	if (r == NULL) return 0;
-
-	int count = 0;
-	if (r->data == key)
-	{
-		// Если нашли совпадение, считаем его (1 + ...)
-		// Поскольку дубликаты (одинаковые числа) уходят в правую ветку, продолжаем поиск там
-		count = 1 + count_occurrences(r->right, key);
-	}
-	else if (key > r->data)
-	{
-		count = count_occurrences(r->left, key);
-	}
-	else
-	{
-		count = count_occurrences(r->right, key);
-	}
-	
-	return count;
+        // Продолжаем искать дубликаты справа (по логике методички)
+        find_levels_to_array(r->right, key, level + 1, levels, count);
+    }
+    else if (key > r->data)
+    {
+        find_levels_to_array(r->left, key, level + 1, levels, count);
+    }
+    else
+    {
+        find_levels_to_array(r->right, key, level + 1, levels, count);
+    }
 }
 
 
 int main()
 {
-	SetConsoleCP(65001);       
+    SetConsoleCP(65001);       
     SetConsoleOutputCP(65001);
-	int D, start = 1;
-	root = NULL;
-	printf("-1 - окончание построения дерева\n");
-	while (start)
-	{
-		printf("Введите число: ");
-		scanf_s("%d", &D);
-		if (D == -1)
-		{
-			printf("Построение дерева окончено\n\n");
-			start = 0;
-		}
-		else
-			root = CreateTree(root, root, D);
-	}
-	
-	printf("Ваше дерево:\n");
-	print_tree(root,0);
-	
-	// --- ВЫПОЛНЕНИЕ ЗАДАНИЙ 1 И 2 ---
-	int key;
-	printf("\n--- ЗАДАНИЕ 1 И 2 ---\n");
-	printf("Введите число для поиска и подсчета вхождений: ");
-	scanf_s("%d", &key);
-	
-	// Задание 1
-	struct Node *found = search_value(root, key);
-	if (found != NULL)
-		printf("Элемент %d успешно НАЙДЕН в дереве!\n", found->data);
-	else
-		printf("Элемент %d в дереве НЕ НАЙДЕН.\n", key);
-		
-	// Задание 2
-	int count = count_occurrences(root, key);
-	printf("Число вхождений элемента %d равно %d\n", key, count);
-
     
-	return 0;
+    int D, start = 1;
+    root = NULL;
+    printf("-1 - окончание построения дерева\n");
+    while (start)
+    {
+        printf("Введите число: ");
+        scanf_s("%d", &D);
+        if (D == -1)
+        {
+            printf("Построение дерева окончено\n\n");
+            start = 0;
+        }
+        else
+            root = CreateTree(root, root, D);
+    }
+    
+    printf("Ваше дерево:\n\n");
+    print_tree(root, 0);
+    
+    // --- ВЫПОЛНЕНИЕ ЗАДАНИЙ 1 И 2 (С ИНДЕКСАМИ УРОВНЕЙ) ---
+    int key;
+    printf("\n--- ЗАДАНИЕ 1 И 2 ---\n");
+    printf("Введите число для поиска: ");
+    scanf_s("%d", &key);
+    
+    int levels[100]; // Массив для сохранения индексов уровней
+    int count = 0;   // Количество найденных вхождений
+
+    // Вызываем поиск с записью уровней в массив
+    find_levels_to_array(root, key, 0, levels, &count);
+
+    if (count == 0)
+    {
+        printf("Элемент %d в дереве НЕ НАЙДЕН.\n", key);
+    }
+    else
+    {
+        printf("Элемент %d успешно НАЙДЕН в дереве!\n", key);
+        printf("Число вхождений элемента %d равно: %d\n", key, count);
+        
+        printf("Индексы уровней: ");
+        for (int i = 0; i < count; i++)
+        {
+            printf("%d ", levels[i]);
+        }
+        printf("\n");
+    }
+    return 0;
 }
