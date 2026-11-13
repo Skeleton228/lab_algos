@@ -6,7 +6,7 @@
 #include <time.h>
 #include <windows.h>
 
-#define MAXV 300   // Максимум вершин (с запасом для Декартова произведения 15x15 = 225)
+#define MAXV 300   // Максимум вершин
 #define MAXNAME 32
 
 double P = 0.5;
@@ -352,7 +352,7 @@ int main() {
                 printf("\nG1 ^ G2:\n"); intersect_graphs(&g1, &g2, &res); print_matrix(&res);
             }
             else if (op == 3) {
-                printf("\nG1 (+) G2 (без изолированных вершин):\n"); ring_sum(&g1, &g2, &res); print_matrix(&res);
+                printf("\nG1 (+) G2: \n"); ring_sum(&g1, &g2, &res); print_matrix(&res);
             }
         }
         else if (choice == 6) {
