@@ -4,30 +4,65 @@
 #include <time.h>
 #include <windows.h>
 
-#define MAX_V 100
+// ==========================================
+// 1. ДИНАМИЧЕСКИЕ СТРУКТУРЫ ГРАФОВ
+// ==========================================
 
-
+// Структура 1: Граф на основе матрицы смежности
 typedef struct {
     int N;
-    int mat[MAX_V][MAX_V];
-    int list[MAX_V][MAX_V];      // Списки смежности (соседи каждой вершины)
-    int list_len[MAX_V];
-} Graph;
+    int** mat;
+} GraphMat;
+
+// Узел для списков смежности
+typedef struct ListNode {
+    int vertex;
+    struct ListNode* next;
+} ListNode;
+
+// Структура 2: Граф на основе списков смежности
+typedef struct {
+    int N;
+    ListNode** array;
+} GraphList;
+
+struct node {
+    int vertex;
+    struct node* next;
+};
+
+void push(struct node** top, int v) {
+    struct node* new_node = (struct node*)malloc(sizeof(struct node));
+    new_node->vertex = v;
+    new_node->next = *top;
+    *top = new_node;
+}
+
+int pop(struct node** top) {
+    if (*top == NULL) return -1;
+    struct node* temp = *top;
+    int popped = temp->vertex;
+    *top = temp->next;
+    free(temp);
+    return popped;
+}
+
+
+// ==========================================
+// УТИЛИТЫ И ОЧИСТКА ПАМЯТИ
+// ==========================================
 
 int input(const char* msg, int min, int max) {
     int val;
     while (1) {
         printf("%s", msg);
-        if (scanf("%d", &val) == 1 && val >= min && val <= max) {
-            return val;
-        }
-        while (getchar() != '\n');
-        printf("Ошибка ввода. Введите число от %d до %d.\n", min, max);
+        if (scanf("%d", &val) == 1 && val >= min && val <= max) return val;
+        while (getchar() != '\n'); 
+        printf("Ошибка. Введите число от %d до %d.\n", min, max);
     }
 }
 
-// Форматированный вывод порядка обхода
-void print_order(const char* title, int order[], int count) {
+void print_order(const char* title, int* order, int count) {
     printf("\n%s\nПорядок посещения: ", title);
     for (int i = 0; i < count; i++) {
         printf("%d%s", order[i] + 1, (i < count - 1) ? " -> " : "");
@@ -35,8 +70,35 @@ void print_order(const char* title, int order[], int count) {
     printf("\n");
 }
 
-// 1. Рекурсивный обход по матрице смежности
-void dfs_mat_rec(Graph* g, int v, int vis[], int order[], int* idx) {
+void free_mat(GraphMat* g) {
+    if (g->mat == NULL) return;
+    for (int i = 0; i < g->N; i++) free(g->mat[i]);
+    free(g->mat);
+    g->mat = NULL;
+    g->N = 0;
+}
+
+void free_list(GraphList* g) {
+    if (g->array == NULL) return;
+    for (int i = 0; i < g->N; i++) {
+        ListNode* curr = g->array[i];
+        while (curr != NULL) {
+            ListNode* temp = curr;
+            curr = curr->next;
+            free(temp);
+        }
+    }
+    free(g->array);
+    g->array = NULL;
+    g->N = 0;
+}
+
+
+// ==========================================
+// 3. АЛГОРИТМЫ ОБХОДА
+// ==========================================
+
+void dfs_mat_rec(GraphMat* g, int v, int* vis, int* order, int* idx) {
     vis[v] = 1;
     order[(*idx)++] = v;
     for (int i = 0; i < g->N; i++) {
@@ -46,156 +108,184 @@ void dfs_mat_rec(Graph* g, int v, int vis[], int order[], int* idx) {
     }
 }
 
-// 2. Рекурсивный обход по спискам смежности
-void dfs_list_rec(Graph* g, int v, int vis[], int order[], int* idx) {
+void dfs_list_rec(GraphList* g, int v, int* vis, int* order, int* idx) {
     vis[v] = 1;
     order[(*idx)++] = v;
-    for (int i = 0; i < g->list_len[v]; i++) {
-        int neighbor = g->list[v][i];
-        if (!vis[neighbor]) {
-            dfs_list_rec(g, neighbor, vis, order, idx);
+    
+    ListNode* curr = g->array[v];
+    while (curr != NULL) {
+        if (!vis[curr->vertex]) {
+            dfs_list_rec(g, curr->vertex, vis, order, idx);
         }
+        curr = curr->next;
     }
 }
 
-// 3. Нерекурсивный обход со стеком
-void dfs_iterative(Graph* g, int start) {
-    int vis[MAX_V] = { 0 }, order[MAX_V], stack[MAX_V];
-    int idx = 0, top = -1;
+void dfs_iterative(GraphMat* g, int start) {
+    int* vis = (int*)calloc(g->N, sizeof(int));
+    int* order = (int*)malloc(g->N * sizeof(int));
+    int idx = 0;
+    
+    struct node* top = NULL; 
 
-    // Цикл для прохода по несвязным кускам графа
     for (int i = 0; i < g->N; i++) {
         int v = (start + i) % g->N;
         if (vis[v]) continue;
 
-        stack[++top] = v;
-        while (top >= 0) {
-            int cur = stack[top--];
+        push(&top, v);
+
+        while (top != NULL) {
+            int cur = pop(&top);
             if (vis[cur]) continue;
 
             vis[cur] = 1;
             order[idx++] = cur;
 
-            // Добавляем соседей в обратном порядке, чтобы меньшие номера обрабатывались первыми
             for (int j = g->N - 1; j >= 0; j--) {
                 if (g->mat[cur][j] == 1 && !vis[j]) {
-                    stack[++top] = j;
+                    push(&top, j);
                 }
             }
         }
     }
+    
     print_order("Нерекурсивный обход: ", order, g->N);
+    free(vis);
+    free(order);
 }
 
 
+// ==========================================
+// ГЛАВНОЕ МЕНЮ
+// ==========================================
 int main() {
     SetConsoleCP(65001);
     SetConsoleOutputCP(65001);
     srand((unsigned)time(NULL));
 
-    Graph g = { 0 };
-    int p = 50; 
+    GraphMat gMat = { 0, NULL };
+    GraphList gList = { 0, NULL };
+    int p = 30;
 
     while (1) {
-        printf("1. Создать случайный граф\n");
-        printf("2. Вывести матрицу смежности\n");
-        printf("3. Рекурсивный обход по матрице\n");
-        printf("4. Обход по спискам смежности\n");
-        printf("5. Нерекурсивный обход\n");
-        printf("6. Вывести списки смежности\n");
-        printf("7. Указать вероятность ребра\n");
-        printf("0. Выход\n");
+        printf("\n========== ЛАБОРАТОРНАЯ РАБОТА №7 ==========\n");
+        printf("1. Создать случайный граф\n2. Вывести матрицу\n3. Рекурсивный обход (матрица)\n");
+        printf("4. Обход по спискам смежности\n5. Нерекурсивный обход (стек)\n");
+        printf("6. Вывести динамические списки\n7. Вероятность ребра\n0. Выход\n");
 
-        int choice = input("Выберите пункт меню: ", 0, 7);
-
+        int choice = input("Выберите пункт: ", 0, 7);
         if (choice == 0) {
-            printf("Работа программы завершена.\n");
+            free_mat(&gMat);
+            free_list(&gList);
+            printf("Память очищена. Программа завершена.\n");
             break;
         }
 
         if (choice == 1) {
-            g.N = input("Количество вершин (1-100): ", 1, MAX_V);
-            for (int i = 0; i < g.N; i++) g.list_len[i] = 0;
-            for (int i = 0; i < g.N; i++) {
-                g.mat[i][i] = 0;
-                for (int j = i + 1; j < g.N; j++) {
+            int N = input("Количество вершин (1-100): ", 1, 100);
+            
+            free_mat(&gMat);
+            free_list(&gList);
+
+            gMat.N = N;
+            gMat.mat = (int**)malloc(N * sizeof(int*));
+            for (int i = 0; i < N; i++) {
+                gMat.mat[i] = (int*)calloc(N, sizeof(int));
+            }
+
+            gList.N = N;
+            gList.array = (ListNode**)malloc(N * sizeof(ListNode*));
+            for (int i = 0; i < N; i++) {
+                gList.array[i] = NULL;
+            }
+
+            for (int i = 0; i < N; i++) {
+                for (int j = i + 1; j < N; j++) {
                     int edge = ((rand() % 100) < p) ? 1 : 0;
-                    g.mat[i][j] = edge;
-                    g.mat[j][i] = edge;
+                    gMat.mat[i][j] = gMat.mat[j][i] = edge;
                 }
             }
 
-            for (int i = 0; i < g.N; i++) {
-                for (int j = 0; j < g.N; j++) {
-                    if (g.mat[i][j] == 1) {
-                        g.list[i][g.list_len[i]++] = j;
+            for (int i = 0; i < N; i++) {
+                for (int j = N - 1; j >= 0; j--) {
+                    if (gMat.mat[i][j] == 1) {
+                        ListNode* newNode = (ListNode*)malloc(sizeof(ListNode));
+                        newNode->vertex = j;
+                        newNode->next = gList.array[i];
+                        gList.array[i] = newNode;
                     }
                 }
             }
-            printf("Граф создан: вершин — %d, вероятность каждого ребра — %d%%.\n", g.N, p);
-            choice = 2; 
+            printf("Граф создан (%d вершин, %d%% вероятность). \n", N, p);
+            choice = 2;
         }
 
-        if (g.N == 0 && choice >= 2 && choice <= 6) {
-            printf("Сначала создайте граф (пункт 1).\n");
+        if (gMat.N == 0 && choice >= 2 && choice <= 6) {
+            printf("Сначала создайте граф!\n");
             continue;
         }
 
-        int vis[MAX_V] = { 0 }, order[MAX_V], idx = 0, start = 0;
+        int start = 0;
+        int* vis = NULL;
+        int* order = NULL;
+        int idx = 0;
 
         switch (choice) {
             case 2:
                 printf("\nМатрица смежности:\n    ");
-                for (int j = 0; j < g.N; j++) printf("%3d", j + 1);
-                for (int i = 0; i < g.N; i++) {
+                for (int j = 0; j < gMat.N; j++) printf("%3d", j + 1);
+                for (int i = 0; i < gMat.N; i++) {
                     printf("\n%3d ", i + 1);
-                    for (int j = 0; j < g.N; j++) {
-                        printf("%3d", g.mat[i][j]);
-                    }
+                    for (int j = 0; j < gMat.N; j++) printf("%3d", gMat.mat[i][j]);
                 }
                 printf("\n");
                 break;
 
             case 3:
-                start = input("Введите начальную вершину (1-N): ", 1, g.N) - 1;
-                dfs_mat_rec(&g, start, vis, order, &idx);
-                // Допроход несвязных компонент
-                for (int i = 0; i < g.N; i++) {
-                    if (!vis[i]) dfs_mat_rec(&g, i, vis, order, &idx);
-                }
-                print_order("Рекурсивный обход по матрице смежности:", order, g.N);
+                start = input("Старт (1-N): ", 1, gMat.N) - 1;
+                vis = (int*)calloc(gMat.N, sizeof(int));
+                order = (int*)malloc(gMat.N * sizeof(int));
+                
+                dfs_mat_rec(&gMat, start, vis, order, &idx);
+                for (int i = 0; i < gMat.N; i++) if (!vis[i]) dfs_mat_rec(&gMat, i, vis, order, &idx);
+                
+                print_order("Рекурсивный обход (матрица):", order, gMat.N);
+                free(vis); free(order);
                 break;
 
             case 4:
-                start = input("Введите начальную вершину (1-N): ", 1, g.N) - 1;
-                dfs_list_rec(&g, start, vis, order, &idx);
-                // Допроход несвязных компонент
-                for (int i = 0; i < g.N; i++) {
-                    if (!vis[i]) dfs_list_rec(&g, i, vis, order, &idx);
-                }
-                print_order("Рекурсивный обход по спискам смежности:", order, g.N);
+                start = input("Старт (1-N): ", 1, gMat.N) - 1;
+                vis = (int*)calloc(gMat.N, sizeof(int));
+                order = (int*)malloc(gMat.N * sizeof(int));
+                
+                dfs_list_rec(&gList, start, vis, order, &idx);
+                for (int i = 0; i < gMat.N; i++) if (!vis[i]) dfs_list_rec(&gList, i, vis, order, &idx);
+                
+                print_order("Рекурсивный обход (динамические списки):", order, gMat.N);
+                free(vis); free(order);
                 break;
 
             case 5:
-                start = input("Введите начальную вершину (1-N): ", 1, g.N) - 1;
-                dfs_iterative(&g, start);
+                start = input("Старт (1-N): ", 1, gMat.N) - 1;
+                dfs_iterative(&gMat, start);
                 break;
 
             case 6:
-                printf("\nСписки смежности:\n");
-                for (int i = 0; i < g.N; i++) {
+                printf("\nПоказать динамические списки :\n");
+                for (int i = 0; i < gList.N; i++) {
                     printf("%d: ", i + 1);
-                    if (g.list_len[i] == 0) printf("нет смежных вершин");
-                    for (int j = 0; j < g.list_len[i]; j++) {
-                        printf("%d%s", g.list[i][j] + 1, (j < g.list_len[i] - 1) ? ", " : "");
+                    ListNode* curr = gList.array[i];
+                    if (curr == NULL) printf("нет соседей");
+                    while (curr != NULL) {
+                        printf("%d%s", curr->vertex + 1, (curr->next != NULL) ? " -> " : "");
+                        curr = curr->next;
                     }
                     printf("\n");
                 }
                 break;
 
             case 7:
-                p = input("Вероятность появления ребра (0-100%): ", 0, 100);
-                printf("Установлена вероятность %d%%. \n", p);
+                p = input("Вероятность (0-100): ", 0, 100);
                 break;
         }
     }
