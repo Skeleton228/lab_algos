@@ -13,6 +13,15 @@ typedef struct {
     int is_directed; // 1 - ориентированный, 0 - неориентированный
 } Graph;
 
+typedef struct {
+    int is_weighted;
+    int is_directed;
+    int N;
+    int p;
+    int start;
+    int cli_mode;
+} CliConfig;
+
 int input(const char* msg, int min, int max) {
     int val;
     while (1) {
@@ -170,18 +179,59 @@ void analyze_graph(Graph* g) {
     free(dist);
 }
 
-// Задание 3*: разбор параметров командной строки
-// Пример запуска: Lab10.exe -w 1 -d 0  (или -weighted 1 -directed 0)
-void parse_args(int argc, char* argv[], int* is_weighted, int* is_directed) {
+// Разбор параметров командной строки
+// Пример: .\lab_10.exe -w 1 -d 0 -n 6 -p 45 -s 1
+void parse_args(int argc, char* argv[], CliConfig* cfg) {
+    cfg->is_weighted = 1;
+    cfg->is_directed = 0;
+    cfg->N = 6;
+    cfg->p = 45;
+    cfg->start = 1;
+    cfg->cli_mode = (argc > 1) ? 1 : 0;
+
     for (int i = 1; i < argc; i++) {
         if ((strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "-weighted") == 0) && i + 1 < argc) {
-            *is_weighted = atoi(argv[i + 1]) ? 1 : 0;
+            cfg->is_weighted = atoi(argv[i + 1]) ? 1 : 0;
             i++;
         } else if ((strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-directed") == 0) && i + 1 < argc) {
-            *is_directed = atoi(argv[i + 1]) ? 1 : 0;
+            cfg->is_directed = atoi(argv[i + 1]) ? 1 : 0;
+            i++;
+        } else if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) {
+            cfg->N = atoi(argv[i + 1]);
+            if (cfg->N < 1) cfg->N = 1;
+            if (cfg->N > 50) cfg->N = 50;
+            i++;
+        } else if (strcmp(argv[i], "-p") == 0 && i + 1 < argc) {
+            cfg->p = atoi(argv[i + 1]);
+            if (cfg->p < 0) cfg->p = 0;
+            if (cfg->p > 100) cfg->p = 100;
+            i++;
+        } else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
+            cfg->start = atoi(argv[i + 1]);
             i++;
         }
     }
+
+    if (cfg->start < 1) cfg->start = 1;
+    if (cfg->start > cfg->N) cfg->start = cfg->N;
+}
+
+// Полный неинтерактивный прогон при запуске с аргументами из консоли
+void run_cli_batch(Graph* g, const CliConfig* cfg) {
+    printf("Параметры запуска: [%s | %s | N = %d | p = %d%% | старт = %d]\n",
+           cfg->is_weighted ? "Взвешенный" : "Невзвешенный",
+           cfg->is_directed ? "Ориентированный" : "Неориентированный",
+           cfg->N, cfg->p, cfg->start);
+
+    generate_graph(g, cfg->N, cfg->p, cfg->is_weighted, cfg->is_directed);
+    print_matrix(g);
+
+    int* dist = (int*)malloc(g->N * sizeof(int));
+    bfsd(g, cfg->start - 1, dist, 1);
+    free(dist);
+
+    analyze_graph(g);
+    free_graph(g);
 }
 
 int main(int argc, char* argv[]) {
@@ -189,16 +239,15 @@ int main(int argc, char* argv[]) {
     SetConsoleOutputCP(65001);
     srand((unsigned)time(NULL));
 
-    Graph g = { 0, NULL, 1, 0 }; // по умолчанию: взвешенный (1), неориентированный (0)
-    int p = 45;
+    CliConfig cfg;
+    parse_args(argc, argv, &cfg);
 
-    // Обработка аргументов командной строки (Задание 3*)
-    parse_args(argc, argv, &g.is_weighted, &g.is_directed);
+    Graph g = { 0, NULL, cfg.is_weighted, cfg.is_directed };
+    int p = cfg.p;
 
-    if (argc > 1) {
-        printf("Запуск с параметрами командной строки: %s, %s\n",
-               g.is_weighted ? "взвешенный" : "невзвешенный",
-               g.is_directed ? "ориентированный" : "неориентированный");
+    if (cfg.cli_mode) {
+        run_cli_batch(&g, &cfg);
+        return 0;
     }
 
     while (1) {
@@ -230,7 +279,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (g.N == 0 && choice >= 2 && choice <= 4) {
-            printf("Сначала сгенерируйте граф (пункт 1)!\n");
+            printf("Сначала сгенерируйте граф\n");
             continue;
         }
 
@@ -253,12 +302,12 @@ int main(int argc, char* argv[]) {
 
             case 5:
                 g.is_weighted = !g.is_weighted;
-                printf("Режим изменён. Пересоздайте граф (пункт 1), чтобы обновить матрицу.\n");
+                printf("Режим изменён. Пересоздайте граф чтобы обновить матрицу.\n");
                 break;
 
             case 6:
                 g.is_directed = !g.is_directed;
-                printf("Ориентация изменена. Пересоздайте граф (пункт 1), чтобы обновить матрицу.\n");
+                printf("Ориентация изменена. Пересоздайте граф чтобы обновить матрицу.\n");
                 break;
 
             case 7:
